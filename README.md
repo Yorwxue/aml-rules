@@ -3,7 +3,8 @@
 Due to the functionality of overloading in cpp, 
 compiler will mangle the function name, so that 
 you cannot call function by the name you defined, so 
-you have to tell compiler this line should be compile by c instead of c++ by ```extern "C"```
+you have to tell compiler this line should be compiled by 
+c instead of c++ by ```extern "C"```
 
 ## Compile
 ```bash
