@@ -2,22 +2,28 @@ import os
 import ctypes
 
 libRule = ctypes.CDLL("./librule.so")
-print(libRule)
 
 # call C function to check connection
+print(libRule)
 libRule.connect()
 
-# calling randNum() C function
-# it returns random number
-varRand = libRule.randNum()
-print("Random Number:", varRand, type(varRand))
+# return setting of c based function
+libRule.GetChannelPtr.restype = ctypes.c_char_p
+libRule.GetBehaviorPtr.restype = ctypes.c_char_p
 
-# calling addNum() C function
-# it returns addition of two numbers
-varAdd = libRule.addNum(20, 30)
-print("Addition : ", varAdd)
 
-print("================================")
+class Transaction(object):
+    def __init__(self, amt, channel, behavior):
+        self.obj = libRule.NewTransaction(ctypes.c_float(amt), ctypes.c_char_p(channel), ctypes.c_char_p(behavior))
+
+    def ShowChannel(self):
+        libRule.ShowChannel(self.obj)
+
+    def GetChannel(self):
+        return libRule.GetChannelPtr(self.obj)
+
+    def GetBehavior(self):
+        return libRule.GetBehaviorPtr(self.obj)
 
 
 class Rule(object):
@@ -30,3 +36,7 @@ class Rule(object):
 
 ruleTest = Rule(10.0)
 ruleTest.run()
+
+tx = Transaction(10, "IBMB".encode('utf-8'), "轉入".encode('utf-8'))
+# tx.ShowChannel()
+print("tx:", tx.GetChannel())
