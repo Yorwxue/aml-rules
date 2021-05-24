@@ -35,7 +35,30 @@ void RunRule(Rule* rulePtr)
     rulePtr->run();
 }
 ```
-
+### Notations for Types
+#### String
+ - python -> c++: 
+   Before sent string from python to c++, you must change format of python-string, for example:
+    ```python
+    inString = "hello".encode('utf-8')
+    ctypes.c_char_p(inString)
+    ```
+   In c++ side, you need to accept the string by point of char,
+   then youn consider it as std::string
+   ```c++
+   char * const inCharPtr;
+   std::string inputString = inCharPtr;
+   ```
+ - c++ -> python:
+   Just like sent string from python to c++, changing format is necessary:
+   ```c++
+   const char *GetCharPtr(std::string outString){return outString.c_str();}
+   ```
+   In python side, you only need to define format at the first time, then
+   you can get return string directly
+   ```python
+   libFoo.GetCharPtr.restype = ctypes.c_char_p
+   ```
 ## Compile
 ```bash
 gcc -c -fPIC cppSource.cpp -o cppSource.o
