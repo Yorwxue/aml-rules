@@ -1,9 +1,13 @@
 extern "C" void connect();
 extern "C" class Transaction;
 extern "C" Transaction* NewTransaction(float amt, char * const channel, char * const behavior);
-extern "C" const char *GetChannelPtr(Transaction* txPtr);
-extern "C" const char *GetBehaviorPtr(Transaction* txPtr);
+extern "C" float TxGetAmount(Transaction* txPtr);
+extern "C" const char *TxGetChannelPtr(Transaction* txPtr);
+extern "C" const char *TxGetBehaviorPtr(Transaction* txPtr);
 extern "C" class TransactionList;
+extern "C" TransactionList *NewTransactionList();
+extern "C" void TxListAppend(TransactionList *txList, Transaction *tx);
+extern "C" Transaction *TxListGetByIndex(TransactionList *txList, int idx);
 extern "C" class Rule;
 extern "C" Rule* NewRule(float amtThresh_in);
 extern "C" void RunRule(Rule* rulePtr, TransactionList *txList);

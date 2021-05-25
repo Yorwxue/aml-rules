@@ -19,23 +19,24 @@ extern "C"{
                 this->behavior = behavior;
             }
             ~Transaction(){}
-            float GetAmt(){return this->amt;}
+            float GetAmount(){return this->amt;}
             std::string GetChannel(){return this->channel;}
             std::string GetBehavior(){return this->behavior;}
     };
-
-    Transaction *NewTransaction(float amt, char * const channelPtr, char * const behaviorPtr){return new Transaction(0, channelPtr, behaviorPtr);}
-    const char *GetChannelPtr(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
-    const char *GetBehaviorPtr(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
+    Transaction *NewTransaction(float amt, char * const channelPtr, char * const behaviorPtr){return new Transaction(amt, channelPtr, behaviorPtr);}
+    float TxGetAmount(Transaction* txPtr){return (txPtr->GetAmount());}
+    const char *TxGetChannelPtr(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
+    const char *TxGetBehaviorPtr(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
 
     class TransactionList{
         private:
             std::vector<Transaction*> txVec;
         public:
+            TransactionList(){}
             void Append(Transaction *tx){
                 this->txVec.push_back(tx);
             }
-            Transaction* GetByIndex(int idx){
+            Transaction *GetByIndex(int idx){
                 int txVecSize = this->txVec.size();
                 if(idx<txVecSize)
                     return this->txVec.at(idx);
@@ -47,6 +48,9 @@ extern "C"{
                 return this->txVec.size();
             }
     };
+    TransactionList *NewTransactionList(){return new TransactionList();}
+    void TxListAppend(TransactionList *txList, Transaction *tx){return txList->Append(tx);};
+    Transaction *TxListGetByIndex(TransactionList *txList, int idx){return txList->GetByIndex(idx);}
 
     class Rule{
         private:
@@ -58,7 +62,10 @@ extern "C"{
             void Run(TransactionList* txList){
                 std::cout << "Threshold of amount:" << this->amtThresh << std::endl;
                 for(int i=0;i<txList->GetSize();i++){
-                    std::cout << "index " << i+1 << ", amount:" << (txList->GetByIndex(i))->GetAmt() << std::endl;
+                    std::cout << "index " << i+1
+                              << ", amount:" << (txList->GetByIndex(i))->GetAmount()
+                              << ", channel:" << (txList->GetByIndex(i))->GetChannel()
+                              << std::endl;
                 }
             }
     };
@@ -75,10 +82,10 @@ int main(){
     std::string behavior("轉入");  // 轉入, 轉出, 轉帳, 存款, 提款
     Transaction *tx1 = new Transaction(10, channel, behavior);
     Transaction *tx2 = new Transaction(20, channel, behavior);
-    std::cout << "amount:"  << tx1->GetAmt()
+    std::cout << "amount:"  << tx1->GetAmount()
               << ", channel:" << tx1->GetChannel()
               << ", behavior:" << tx1->GetBehavior() << std::endl;
-    TransactionList *txList = new TransactionList;
+    TransactionList *txList = NewTransactionList();
     txList->Append(tx1);
     txList->Append(tx2);
     RunRule(rule, txList);

@@ -8,19 +8,34 @@ print(libRule)
 libRule.connect()
 
 # return setting of c based function
-libRule.GetChannelPtr.restype = ctypes.c_char_p
-libRule.GetBehaviorPtr.restype = ctypes.c_char_p
+libRule.TxGetAmount.restype = ctypes.c_float
+libRule.TxGetChannelPtr.restype = ctypes.c_char_p
+libRule.TxGetBehaviorPtr.restype = ctypes.c_char_p
 
 
 class Transaction(object):
     def __init__(self, amt, channel, behavior):
         self.obj = libRule.NewTransaction(ctypes.c_float(amt), ctypes.c_char_p(channel), ctypes.c_char_p(behavior))
 
+    def GetAmount(self):
+        return libRule.TxGetAmount(self.obj)
+
     def GetChannel(self):
-        return libRule.GetChannelPtr(self.obj)
+        return libRule.TxGetChannelPtr(self.obj)
 
     def GetBehavior(self):
-        return libRule.GetBehaviorPtr(self.obj)
+        return libRule.TxGetBehaviorPtr(self.obj)
+
+
+class TransactionList(object):
+    def __init__(self, txList=None):
+        self.obj = libRule.NewTransactionList()
+        for tx in txList:
+            txPtr = tx.obj
+            libRule.TxListAppend(self.obj, txPtr)
+
+    def GetByIndex(self, idx):
+        return libRule.TxListGetByIndex(self.obj, idx)
 
 
 class Rule(object):
@@ -31,15 +46,22 @@ class Rule(object):
             str: ctypes.c_char_p
         }
 
-    def run(self, txList):
-        print("NUmber of transactions: %d" % len(txList))
-        # libRule.RunRule(self.obj, (libRule.Transaction) *txList, ctypes.c_int(len(txList)))
+    def Run(self, txList):
+        txListPtr = txList.obj
+        libRule.RunRule(self.obj, txListPtr)
 
 
 ruleTest = Rule(10.0)
 
 tx1 = Transaction(10, "IBMB".encode('utf-8'), "轉入".encode('utf-8'))
 tx2 = Transaction(20, "Oversea".encode('utf-8'), "轉帳".encode('utf-8'))
-txList = [tx1, tx2]
-print("tx:", tx1.GetChannel())
-# ruleTest.run(txList)
+print("tx1.GetAmt:", tx1.GetAmount())
+print("tx1.GetChannel:", tx1.GetChannel())
+
+txList = TransactionList([tx1, tx2])
+
+# check address are the same
+# print(tx1.obj)
+# print(txList.GetByIndex(0))
+
+ruleTest.Run(txList)
