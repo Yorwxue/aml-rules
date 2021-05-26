@@ -14,8 +14,8 @@ libRule.TxGetAmount.restype = ctypes.c_float
 libRule.TxGetDateTime.restype = ctypes.c_ulonglong
 libRule.TxGetChannelPtr.restype = ctypes.c_char_p
 libRule.TxGetBehaviorPtr.restype = ctypes.c_char_p
-libRule.RuleGetDateTimeStart.restype = ctypes.c_ulonglong
 libRule.RuleGetAmtThresh.restype = ctypes.c_float
+libRule.RunRule.restype = ctypes.c_bool
 
 
 class Transaction(object):
@@ -47,19 +47,12 @@ class TransactionList(object):
 
 
 class Rule(object):
-    def __init__(self, dateTimeStart, amtThresh=0.):
-        self.obj = libRule.NewRule(ctypes.c_ulonglong(dateTimeStart), ctypes.c_float(amtThresh))
-        self.txStructure = {
-            float: ctypes.c_float,
-            str: ctypes.c_char_p
-        }
+    def __init__(self, amtThresh=0., timesThresh=1):
+        self.obj = libRule.NewRule(ctypes.c_float(amtThresh), ctypes.c_int(timesThresh))
 
-    def Run(self, txList):
+    def Run(self, txList, dateTimeStart=0):
         txListPtr = txList.obj
-        libRule.RunRule(self.obj, txListPtr)
-
-    def GetDateStart(self):
-        return libRule.RuleGetDateTimeStart(self.obj)
+        return libRule.RunRule(self.obj, txListPtr, ctypes.c_ulonglong(dateTimeStart))
 
     def GetAmtThresh(self):
         return libRule.RuleGetAmtThresh(self.obj)
@@ -82,15 +75,23 @@ def CDateTime2Py(dateTimeInInt):
 
 
 if __name__ == "__main__":
-    ruleTest = Rule(
-        PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-1, hours=3, minutes=33, seconds=15)),
-        10.0
+    rule1 = Rule(
+        amtThresh=10.0,
+        timesThresh=2
     )
-    ruleTest2 = Rule(
-        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
-        100.0
+    rule2 = Rule(
+        amtThresh=100.0
     )
-    ruleList = [ruleTest, ruleTest2]
+    rule3 = Rule(
+        amtThresh=10.0,
+        timesThresh=1
+    )
+    ruleList = [rule1, rule2, rule3]
+    dateTimeStartList = [
+        PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-7)),
+        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(days=-2)),
+        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(hours=-1)),
+    ]
 
     tx1 = Transaction(
         PyDateTime2C(datetime.datetime.now()),
@@ -104,11 +105,17 @@ if __name__ == "__main__":
         "Oversea".encode('utf-8'),
         "轉帳".encode('utf-8')
     )
+    tx3 = Transaction(
+        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(minutes=-33, seconds=15)),
+        20,
+        "IBMB".encode('utf-8'),
+        "轉帳".encode('utf-8')
+    )
     # print("tx1.GetDateTime:", CDateTime2Py(tx1.GetDateTime()))
     # print("tx1.GetAmt:", tx1.GetAmount())
     # print("tx1.GetChannel:", tx1.GetChannel())
 
-    txList = TransactionList([tx1, tx2])
+    txList = TransactionList([tx1, tx2, tx3])
 
     # check address are the same
     # print(tx1.obj)
@@ -116,9 +123,13 @@ if __name__ == "__main__":
 
     # rule test
     # ruleTest.Run(txList)
-    for ruleId, rule in enumerate(ruleList):
-        print("rule %d:" % ruleId)
-        print("Start date time of rule test: ", CDateTime2Py(rule.GetDateStart()))
+    for ruleId in range(len(ruleList)):
+        rule = ruleList[ruleId]
+        dateTimeStart = dateTimeStartList[ruleId]
+        print("rule %s:" % (ruleId+1))
+        print("Start date time of rule test: ", CDateTime2Py(dateTimeStart))
         print("Threshold of amount: %f" % rule.GetAmtThresh())
-        rule.Run(txList)
+        trigger = rule.Run(txList, dateTimeStart)
+        if trigger:
+            print("=== Rule %s had been triggered. ===" % (ruleId+1))
     print("done")

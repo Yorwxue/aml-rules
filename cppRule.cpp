@@ -57,34 +57,39 @@ extern "C"{
 
     class Rule{
         private:
-            unsigned long long dateTimeStart;
             float amtThresh;
+            int timesThresh;
         public:
-            Rule(){amtThresh = 0; dateTimeStart = 0;}
-            Rule(const float amtThresh){this->amtThresh = amtThresh; dateTimeStart = 0;}
-            Rule(const unsigned long long dateTimeStart){this->amtThresh = 0; this->dateTimeStart = dateTimeStart;}
-            Rule(const unsigned long long dateTimeStart, const float amtThresh){this->amtThresh = amtThresh; this->dateTimeStart = dateTimeStart;}
+            Rule(){this->amtThresh=0; this->timesThresh=1;}
+            Rule(const float amtThresh){this->amtThresh=amtThresh; this->timesThresh=1;}
+            Rule(const int timesThresh){this->amtThresh=0; this->timesThresh=timesThresh;}
+            Rule(const float amtThresh, const int timesThresh){this->amtThresh=amtThresh; this->timesThresh=timesThresh;}
             ~Rule(){}
-            unsigned long long GetDateTimeStart(){return this->dateTimeStart;}
             float GetAmtThresh(){return this->amtThresh;}
-            void Run(TransactionList* txList){
+            bool Run(TransactionList* txList, unsigned long long dateTimeStart){
+                int count = 0;
                 std::vector<Transaction*>::iterator txPtr;
                 int i;
                 for(i=0, txPtr=(txList->txVec).begin();
                     txPtr!=(txList->txVec).end() &&
-                    (*txPtr)->GetDateTime()>=this->dateTimeStart;
+                        (*txPtr)->GetDateTime()>=dateTimeStart &&
+                        (*txPtr)->GetAmount()>=this->amtThresh;
                     txPtr++, i++){
                     std::cout << "index " << i+1
                               << ", date time:" << (*txPtr)->GetDateTime()
                               << ", amount:" << (*txPtr)->GetAmount()
                               << ", channel:" << (*txPtr)->GetChannel()
                               << std::endl;
+                    count++;
                 }
+                if(count>=this->timesThresh)  // trigger
+                    return true;
+                else
+                    return false;
             }
     };
-    Rule* NewRule(unsigned long long dateTimeStart, float amtThresh){return new Rule(dateTimeStart, amtThresh);}
-    void RunRule(Rule* rulePtr, TransactionList *txList){rulePtr->Run(txList);}
-    unsigned long long RuleGetDateTimeStart(Rule* rulePtr){return rulePtr->GetDateTimeStart();}
+    Rule* NewRule(float amtThresh, int timesThresh){return new Rule(amtThresh, timesThresh);}
+    bool RunRule(Rule* rulePtr, TransactionList *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
     float RuleGetAmtThresh(Rule* rulePtr){return rulePtr->GetAmtThresh();}
 }
 int main(){
@@ -95,7 +100,7 @@ int main(){
     std::string behavior("轉入");  // 轉入, 轉出, 轉帳, 存款, 提款
 
     // rule
-    Rule *rule = NewRule(dateTime, value);
+    Rule *rule = new Rule(dateTime, value);
 
     // tx
     Transaction *tx1 = new Transaction(dateTime, 10, channel, behavior);
@@ -107,6 +112,6 @@ int main(){
     TransactionList *txList = NewTransactionList();
     txList->Append(tx1);
     txList->Append(tx2);
-    RunRule(rule, txList);
+    RunRule(rule, txList, dateTime);
     return 0;
 }
