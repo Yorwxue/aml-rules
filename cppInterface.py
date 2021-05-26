@@ -86,6 +86,12 @@ if __name__ == "__main__":
         PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-1, hours=3, minutes=33, seconds=15)),
         10.0
     )
+    ruleTest2 = Rule(
+        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
+        100.0
+    )
+    ruleList = [ruleTest, ruleTest2]
+
     tx1 = Transaction(
         PyDateTime2C(datetime.datetime.now()),
         10,
@@ -108,7 +114,11 @@ if __name__ == "__main__":
     # print(tx1.obj)
     # print(txList.GetByIndex(0))
 
-    print("Start date time of rule test: ", CDateTime2Py(ruleTest.GetDateStart()))
-    print("Threshold of amount: %f" % ruleTest.GetAmtThresh())
-    ruleTest.Run(txList)
+    # rule test
+    # ruleTest.Run(txList)
+    for ruleId, rule in enumerate(ruleList):
+        print("rule %d:" % ruleId)
+        print("Start date time of rule test: ", CDateTime2Py(rule.GetDateStart()))
+        print("Threshold of amount: %f" % rule.GetAmtThresh())
+        rule.Run(txList)
     print("done")

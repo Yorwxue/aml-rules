@@ -33,9 +33,8 @@ extern "C"{
     const char *TxGetBehaviorPtr(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
 
     class TransactionList{
-        private:
-            std::vector<Transaction*> txVec;
         public:
+            std::vector<Transaction*> txVec;
             TransactionList(){}
             void Append(Transaction *tx){
                 this->txVec.push_back(tx);
@@ -69,14 +68,16 @@ extern "C"{
             unsigned long long GetDateTimeStart(){return this->dateTimeStart;}
             float GetAmtThresh(){return this->amtThresh;}
             void Run(TransactionList* txList){
-                for(int i=0;
-                    i<txList->GetSize(),
-                    ((txList->GetByIndex(i))->GetDateTime()>=this->dateTimeStart);
-                    i++){
+                std::vector<Transaction*>::iterator txPtr;
+                int i;
+                for(i=0, txPtr=(txList->txVec).begin();
+                    txPtr!=(txList->txVec).end() &&
+                    (*txPtr)->GetDateTime()>=this->dateTimeStart;
+                    txPtr++, i++){
                     std::cout << "index " << i+1
-                              << ", date time:" << (txList->GetByIndex(i))->GetDateTime()
-                              << ", amount:" << (txList->GetByIndex(i))->GetAmount()
-                              << ", channel:" << (txList->GetByIndex(i))->GetChannel()
+                              << ", date time:" << (*txPtr)->GetDateTime()
+                              << ", amount:" << (*txPtr)->GetAmount()
+                              << ", channel:" << (*txPtr)->GetChannel()
                               << std::endl;
                 }
             }
