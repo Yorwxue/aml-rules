@@ -58,14 +58,21 @@ extern "C"{
 
     class Rule{
         private:
+            unsigned long long dateTimeStart;
             float amtThresh;
         public:
-            Rule(){amtThresh = 0;}
-            Rule(const float amtThresh){this->amtThresh = amtThresh;}
+            Rule(){amtThresh = 0; dateTimeStart = 0;}
+            Rule(const float amtThresh){this->amtThresh = amtThresh; dateTimeStart = 0;}
+            Rule(const unsigned long long dateTimeStart){this->amtThresh = 0; this->dateTimeStart = dateTimeStart;}
+            Rule(const unsigned long long dateTimeStart, const float amtThresh){this->amtThresh = amtThresh; this->dateTimeStart = dateTimeStart;}
             ~Rule(){}
+            unsigned long long GetDateTimeStart(){return this->dateTimeStart;}
+            float GetAmtThresh(){return this->amtThresh;}
             void Run(TransactionList* txList){
-                std::cout << "Threshold of amount:" << this->amtThresh << std::endl;
-                for(int i=0;i<txList->GetSize();i++){
+                for(int i=0;
+                    i<txList->GetSize(),
+                    ((txList->GetByIndex(i))->GetDateTime()>=this->dateTimeStart);
+                    i++){
                     std::cout << "index " << i+1
                               << ", date time:" << (txList->GetByIndex(i))->GetDateTime()
                               << ", amount:" << (txList->GetByIndex(i))->GetAmount()
@@ -74,18 +81,22 @@ extern "C"{
                 }
             }
     };
-    Rule* NewRule(float amtThresh){return new Rule(amtThresh);}
+    Rule* NewRule(unsigned long long dateTimeStart, float amtThresh){return new Rule(dateTimeStart, amtThresh);}
     void RunRule(Rule* rulePtr, TransactionList *txList){rulePtr->Run(txList);}
+    unsigned long long RuleGetDateTimeStart(Rule* rulePtr){return rulePtr->GetDateTimeStart();}
+    float RuleGetAmtThresh(Rule* rulePtr){return rulePtr->GetAmtThresh();}
 }
 int main(){
-    // rule
+    //example of data
     const float value = 10.0;
-    Rule *rule = NewRule(value);
-
-    // tx
+    unsigned long long dateTime = 20210526100800;
     std::string channel("IBMB");  // IBMB, Other Bank, Oversea
     std::string behavior("轉入");  // 轉入, 轉出, 轉帳, 存款, 提款
-    unsigned long long dateTime = 20210526100800;
+
+    // rule
+    Rule *rule = NewRule(dateTime, value);
+
+    // tx
     Transaction *tx1 = new Transaction(dateTime, 10, channel, behavior);
     Transaction *tx2 = new Transaction(dateTime, 20, channel, behavior);
     std::cout << "amount:"  << tx1->GetAmount()

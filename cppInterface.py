@@ -14,6 +14,8 @@ libRule.TxGetAmount.restype = ctypes.c_float
 libRule.TxGetDateTime.restype = ctypes.c_ulonglong
 libRule.TxGetChannelPtr.restype = ctypes.c_char_p
 libRule.TxGetBehaviorPtr.restype = ctypes.c_char_p
+libRule.RuleGetDateTimeStart.restype = ctypes.c_ulonglong
+libRule.RuleGetAmtThresh.restype = ctypes.c_float
 
 
 class Transaction(object):
@@ -45,8 +47,8 @@ class TransactionList(object):
 
 
 class Rule(object):
-    def __init__(self, amtThresh=0.):
-        self.obj = libRule.NewRule(ctypes.c_float(amtThresh))
+    def __init__(self, dateTimeStart, amtThresh=0.):
+        self.obj = libRule.NewRule(ctypes.c_ulonglong(dateTimeStart), ctypes.c_float(amtThresh))
         self.txStructure = {
             float: ctypes.c_float,
             str: ctypes.c_char_p
@@ -55,6 +57,12 @@ class Rule(object):
     def Run(self, txList):
         txListPtr = txList.obj
         libRule.RunRule(self.obj, txListPtr)
+
+    def GetDateStart(self):
+        return libRule.RuleGetDateTimeStart(self.obj)
+
+    def GetAmtThresh(self):
+        return libRule.RuleGetAmtThresh(self.obj)
 
 
 def PyDateTime2C(dateTime):
@@ -74,7 +82,10 @@ def CDateTime2Py(dateTimeInInt):
 
 
 if __name__ == "__main__":
-    ruleTest = Rule(10.0)
+    ruleTest = Rule(
+        PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-1, hours=3, minutes=33, seconds=15)),
+        10.0
+    )
     tx1 = Transaction(
         PyDateTime2C(datetime.datetime.now()),
         10,
@@ -87,9 +98,9 @@ if __name__ == "__main__":
         "Oversea".encode('utf-8'),
         "轉帳".encode('utf-8')
     )
-    print("tx1.GetDateTime:", CDateTime2Py(tx1.GetDateTime()))
-    print("tx1.GetAmt:", tx1.GetAmount())
-    print("tx1.GetChannel:", tx1.GetChannel())
+    # print("tx1.GetDateTime:", CDateTime2Py(tx1.GetDateTime()))
+    # print("tx1.GetAmt:", tx1.GetAmount())
+    # print("tx1.GetChannel:", tx1.GetChannel())
 
     txList = TransactionList([tx1, tx2])
 
@@ -97,4 +108,7 @@ if __name__ == "__main__":
     # print(tx1.obj)
     # print(txList.GetByIndex(0))
 
+    print("Start date time of rule test: ", CDateTime2Py(ruleTest.GetDateStart()))
+    print("Threshold of amount: %f" % ruleTest.GetAmtThresh())
     ruleTest.Run(txList)
+    print("done")

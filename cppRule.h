@@ -10,5 +10,7 @@ extern "C" TransactionList *NewTransactionList();
 extern "C" void TxListAppend(TransactionList *txList, Transaction *tx);
 extern "C" Transaction *TxListGetByIndex(TransactionList *txList, int idx);
 extern "C" class Rule;
-extern "C" Rule* NewRule(float amtThresh_in);
+extern "C" Rule* NewRule(unsigned long long dateTimeStart, float amtThresh_in);
 extern "C" void RunRule(Rule* rulePtr, TransactionList *txList);
+extern "C" unsigned long long RuleGetDateTimeStart(Rule* rulePtr);
+extern "C" float RuleGetAmtThresh(Rule* rulePtr);
