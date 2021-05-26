@@ -9,21 +9,25 @@ extern "C"{
 
     class Transaction{
         private:
+            unsigned long long dateTime;
             float amt;
             std::string channel;
             std::string behavior;
         public:
-            Transaction(float amt, std::string channel, std::string behavior){
+            Transaction(unsigned long long dateTime, float amt, std::string channel, std::string behavior){
+                this->dateTime = dateTime;
                 this->amt = amt;
                 this->channel = channel;
                 this->behavior = behavior;
             }
             ~Transaction(){}
+            unsigned long long GetDateTime(){return this->dateTime;}
             float GetAmount(){return this->amt;}
             std::string GetChannel(){return this->channel;}
             std::string GetBehavior(){return this->behavior;}
     };
-    Transaction *NewTransaction(float amt, char * const channelPtr, char * const behaviorPtr){return new Transaction(amt, channelPtr, behaviorPtr);}
+    Transaction *NewTransaction(unsigned long long dateTime, float amt, char * const channelPtr, char * const behaviorPtr){return new Transaction(dateTime, amt, channelPtr, behaviorPtr);}
+    unsigned long long TxGetDateTime(Transaction* txPtr){return (txPtr->GetDateTime());}
     float TxGetAmount(Transaction* txPtr){return (txPtr->GetAmount());}
     const char *TxGetChannelPtr(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
     const char *TxGetBehaviorPtr(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
@@ -63,6 +67,7 @@ extern "C"{
                 std::cout << "Threshold of amount:" << this->amtThresh << std::endl;
                 for(int i=0;i<txList->GetSize();i++){
                     std::cout << "index " << i+1
+                              << ", date time:" << (txList->GetByIndex(i))->GetDateTime()
                               << ", amount:" << (txList->GetByIndex(i))->GetAmount()
                               << ", channel:" << (txList->GetByIndex(i))->GetChannel()
                               << std::endl;
@@ -80,15 +85,16 @@ int main(){
     // tx
     std::string channel("IBMB");  // IBMB, Other Bank, Oversea
     std::string behavior("轉入");  // 轉入, 轉出, 轉帳, 存款, 提款
-    Transaction *tx1 = new Transaction(10, channel, behavior);
-    Transaction *tx2 = new Transaction(20, channel, behavior);
+    unsigned long long dateTime = 20210526100800;
+    Transaction *tx1 = new Transaction(dateTime, 10, channel, behavior);
+    Transaction *tx2 = new Transaction(dateTime, 20, channel, behavior);
     std::cout << "amount:"  << tx1->GetAmount()
+              << ", date time:" << std::to_string(tx1->GetDateTime())
               << ", channel:" << tx1->GetChannel()
               << ", behavior:" << tx1->GetBehavior() << std::endl;
     TransactionList *txList = NewTransactionList();
     txList->Append(tx1);
     txList->Append(tx2);
     RunRule(rule, txList);
-
     return 0;
 }

@@ -1,6 +1,7 @@
 extern "C" void connect();
 extern "C" class Transaction;
-extern "C" Transaction* NewTransaction(float amt, char * const channel, char * const behavior);
+extern "C" Transaction* NewTransaction(unsigned long long dateTime, float amt, char * const channel, char * const behavior);
+extern "C" unsigned long long TxGetDateTime(Transaction* txPtr);
 extern "C" float TxGetAmount(Transaction* txPtr);
 extern "C" const char *TxGetChannelPtr(Transaction* txPtr);
 extern "C" const char *TxGetBehaviorPtr(Transaction* txPtr);
