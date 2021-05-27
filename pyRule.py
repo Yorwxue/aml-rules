@@ -1,62 +1,31 @@
-import os
-import ctypes
 import datetime
 import time
 
 
-libRule = ctypes.CDLL("./librule.so")
-
-# call C function to check connection
-print(libRule)
-libRule.connect()
-
-# return setting of c based function
-libRule.TxGetAmount.restype = ctypes.c_float
-libRule.TxGetDateTime.restype = ctypes.c_ulonglong
-libRule.TxGetChannelPtr.restype = ctypes.c_char_p
-libRule.TxGetBehaviorPtr.restype = ctypes.c_char_p
-libRule.RuleGetAmtThresh.restype = ctypes.c_float
-libRule.RunRule.restype = ctypes.c_bool
-
-
 class Transaction(object):
     def __init__(self, dateTime, amt, channel, behavior):
-        self.obj = libRule.NewTransaction(ctypes.c_ulonglong(dateTime), ctypes.c_float(amt), ctypes.c_char_p(channel), ctypes.c_char_p(behavior))
-
-    def GetDateTime(self):
-        return libRule.TxGetDateTime(self.obj)
-
-    def GetAmount(self):
-        return libRule.TxGetAmount(self.obj)
-
-    def GetChannel(self):
-        return libRule.TxGetChannelPtr(self.obj)
-
-    def GetBehavior(self):
-        return libRule.TxGetBehaviorPtr(self.obj)
-
-
-class TransactionList(object):
-    def __init__(self, txList=None):
-        self.obj = libRule.NewTransactionList()
-        for tx in txList:
-            txPtr = tx.obj
-            libRule.TxListAppend(self.obj, txPtr)
-
-    def GetByIndex(self, idx):
-        return libRule.TxListGetByIndex(self.obj, idx)
+        self.dateTime = dateTime
+        self.amt = amt
+        self.channel = channel
+        self.behavior = behavior
 
 
 class Rule(object):
     def __init__(self, amtThresh=0., timesThresh=1):
-        self.obj = libRule.NewRule(ctypes.c_float(amtThresh), ctypes.c_int(timesThresh))
+        self.amtThresh = amtThresh
+        self.timesThresh = timesThresh
 
-    def Run(self, txList, dateTimeStart=0):
-        txListPtr = txList.obj
-        return libRule.RunRule(self.obj, txListPtr, ctypes.c_ulonglong(dateTimeStart))
+    def Run(self, txList, dateTimeStart):
+        count = 0
+        for i, tx in enumerate(txList):
+            if (tx.dateTime >= dateTimeStart) and (tx.amt >= self.amtThresh):
+                # print("index %d, date time: %d, amount: %f, channel: %s" % (i+1, tx.dateTime, tx.amt, tx.channel))
+                count += 1
 
-    def GetAmtThresh(self):
-        return libRule.RuleGetAmtThresh(self.obj)
+        if (count >= self.timesThresh):
+            return True
+        else:
+            return False
 
 
 def PyDateTime2C(dateTime):
@@ -101,7 +70,7 @@ if __name__ == "__main__":
         "轉入".encode('utf-8')
     )
     tx2 = Transaction(
-        PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
+        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
         20,
         "Oversea".encode('utf-8'),
         "轉帳".encode('utf-8')
@@ -112,18 +81,8 @@ if __name__ == "__main__":
         "IBMB".encode('utf-8'),
         "轉帳".encode('utf-8')
     )
-    # print("tx1.GetDateTime:", CDateTime2Py(tx1.GetDateTime()))
-    # print("tx1.GetAmt:", tx1.GetAmount())
-    # print("tx1.GetChannel:", tx1.GetChannel())
+    txList = [tx1, tx2, tx3]*1000000
 
-    txList = TransactionList([tx1, tx2, tx3]*1000000)
-
-    # check address are the same
-    # print(tx1.obj)
-    # print(txList.GetByIndex(0))
-
-    # rule test
-    # ruleTest.Run(txList)
     print("Start Testing ..")
     START = time.time()
     for ruleId in range(len(ruleList)):
@@ -131,7 +90,7 @@ if __name__ == "__main__":
         dateTimeStart = dateTimeStartList[ruleId]
         print("rule %s:" % (ruleId+1))
         print("Start date time of rule test: ", CDateTime2Py(dateTimeStart))
-        print("Threshold of amount: %f" % rule.GetAmtThresh())
+        print("Threshold of amount: %f" % rule.amtThresh)
         trigger = rule.Run(txList, dateTimeStart)
         if trigger:
             print("=== Rule %s had been triggered. ===" % (ruleId+1))

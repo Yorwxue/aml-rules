@@ -75,11 +75,11 @@ extern "C"{
                         (*txPtr)->GetDateTime()>=dateTimeStart &&
                         (*txPtr)->GetAmount()>=this->amtThresh;
                     txPtr++, i++){
-                    std::cout << "index " << i+1
-                              << ", date time:" << (*txPtr)->GetDateTime()
-                              << ", amount:" << (*txPtr)->GetAmount()
-                              << ", channel:" << (*txPtr)->GetChannel()
-                              << std::endl;
+//                    std::cout << "index " << i+1
+//                              << ", date time:" << (*txPtr)->GetDateTime()
+//                              << ", amount:" << (*txPtr)->GetAmount()
+//                              << ", channel:" << (*txPtr)->GetChannel()
+//                              << std::endl;
                     count++;
                 }
                 if(count>=this->timesThresh)  // trigger
