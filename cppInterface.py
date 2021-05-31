@@ -59,6 +59,11 @@ class Rule(object):
         return libRule.RuleGetAmtThresh(self.obj)
 
 
+class RuleA1(Rule):
+    def __init__(self, amtThresh=0., timesThresh=1):
+        self.obj = libRule.NewRuleA1(ctypes.c_float(amtThresh), ctypes.c_int(timesThresh))
+
+
 def PyDateTime2C(dateTime):
     """
     param dateTime: python datetime object
@@ -87,10 +92,15 @@ if __name__ == "__main__":
         amtThresh=10.0,
         timesThresh=1
     )
-    ruleList = [rule1, rule2, rule3]
+    ruleA1 = RuleA1(
+        amtThresh=10.0,
+        timesThresh=1
+    )
+    ruleList = [rule1, rule2, rule3, ruleA1]
     dateTimeStartList = [
         PyDateTime2C(datetime.datetime.now() + datetime.timedelta(days=-7)),
         PyDateTime2C(datetime.datetime.now() + datetime.timedelta(days=-2)),
+        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(hours=-1)),
         PyDateTime2C(datetime.datetime.now() + datetime.timedelta(hours=-1)),
     ]
 
@@ -116,7 +126,7 @@ if __name__ == "__main__":
     # print("tx1.GetAmt:", tx1.GetAmount())
     # print("tx1.GetChannel:", tx1.GetChannel())
 
-    txList = TransactionList([tx1, tx2, tx3]*1000000)
+    txList = TransactionList([tx1, tx2, tx3])
 
     # check address are the same
     # print(tx1.obj)

@@ -56,17 +56,17 @@ extern "C"{
     Transaction *TxListGetByIndex(TransactionList *txList, int idx){return txList->GetByIndex(idx);}
 
     class Rule{
-        private:
+        protected:
             float amtThresh;
             int timesThresh;
         public:
-            Rule(){this->amtThresh=0; this->timesThresh=1;}
+            Rule():amtThresh(0), timesThresh(1){}
             Rule(const float amtThresh){this->amtThresh=amtThresh; this->timesThresh=1;}
             Rule(const int timesThresh){this->amtThresh=0; this->timesThresh=timesThresh;}
             Rule(const float amtThresh, const int timesThresh){this->amtThresh=amtThresh; this->timesThresh=timesThresh;}
             ~Rule(){}
             float GetAmtThresh(){return this->amtThresh;}
-            bool Run(TransactionList* txList, unsigned long long dateTimeStart){
+            virtual bool Run(TransactionList* txList, unsigned long long dateTimeStart){
                 int count = 0;
                 std::vector<Transaction*>::iterator txPtr;
                 int i;
@@ -91,6 +91,16 @@ extern "C"{
     Rule* NewRule(float amtThresh, int timesThresh){return new Rule(amtThresh, timesThresh);}
     bool RunRule(Rule* rulePtr, TransactionList *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
     float RuleGetAmtThresh(Rule* rulePtr){return rulePtr->GetAmtThresh();}
+
+    class RuleA1:public Rule{
+        public:
+            RuleA1(const float amtThresh, const int timesThresh):Rule(amtThresh, timesThresh){}
+             bool Run(TransactionList* txList, unsigned long long dateTimeStart) override{
+                std::cout << "Here is RuleA1" << std::endl;
+                return true;
+             }
+    };
+    Rule* NewRuleA1(float amtThresh, int timesThresh){return new RuleA1(amtThresh, timesThresh);}
 }
 int main(){
     //example of data

@@ -13,3 +13,5 @@ extern "C" class Rule;
 extern "C" Rule* NewRule(float amtThresh_in, int timesThresh);
 extern "C" bool RunRule(Rule* rulePtr, TransactionList *txList, unsigned long long dateTimeStart);
 extern "C" float RuleGetAmtThresh(Rule* rulePtr);
+extern "C" class RuleA1;
+extern "C" Rule* NewRuleA1(float amtThresh_in, int timesThresh);
