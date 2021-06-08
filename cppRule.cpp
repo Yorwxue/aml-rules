@@ -14,7 +14,7 @@ class List{
         void Append(T newData){
             this->Vec.push_back(newData);
         }
-        T GetByIndex(int idx){
+        T GetPtrByIndex(int idx){
             int VecSize = this->Vec.size();
             if(idx<VecSize)
                 return this->Vec.at(idx);
@@ -25,14 +25,15 @@ class List{
         int GetSize(){
             return this->Vec.size();
         }
+        int GetCapacity(){
+            return this->Vec.capacity();
+        }
+        void AppCapacity(int num){
+            this->Vec.reserve(num+GetCapacity());
+        }
 };
-/********************************************************************
-templat <class T>
-void ListAppend(List<T> *list, T newData){return list->Append(newData);};
-templat <class T>
-T ListGetByIndex(List<T>, *list int idx){return list->GetByIndex(idx);}
-/*********************************************************************/
 
+/************************ interface for ctypes ****************************/
 extern "C"{
     void connect(){std::cout << "Connected to CPP extension...\n";}
 
@@ -61,54 +62,42 @@ extern "C"{
     const char *TxGetChannelPtr(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
     const char *TxGetBehaviorPtr(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
 
-    /*
-    class TransactionList{
-        public:
-            std::vector<Transaction*> Vec;  // technically transactions are been append by the order of date-time(FIFO like)
-        public:
-            TransactionList(){}
-            void Append(Transaction *tx){
-                this->Vec.push_back(tx);
-            }
-            Transaction *GetByIndex(int idx){
-                int VecSize = this->Vec.size();
-                if(idx<VecSize)
-                    return this->Vec.at(idx);
-                else
-                    std::cout << "Index out of range(" << VecSize << "), return the last element." << std::endl;
-                    return this->Vec.back();
-            }
-            int GetSize(){
-                return this->Vec.size();
-            }
-    };
-    TransactionList *NewTransactionList(){return new TransactionList();}
-    void TxListAppend(TransactionList *txList, Transaction *tx){return txList->Append(tx);};
-    Transaction *TxListGetByIndex(TransactionList *txList, int idx){return txList->GetByIndex(idx);}
-    */
-    // transaction list
+    /*************** transaction list ***************/
     void *NewTransactionList(){return (void *)(new List<Transaction *>());}
     void TxListAppend(void *list, Transaction *newData){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         txList->Append(newData);
     };
-    Transaction *TxListGetByIndex(void *list, int idx){
+    Transaction *TxListGetPtrByIndex(void *list, int idx){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
-        return txList->GetByIndex(idx);
+        return txList->GetPtrByIndex(idx);
+    }
+    int GetTxListSize(void *list){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        return txList->GetSize();
+    }
+    int GetTxListCapacity(void *list){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        return txList->GetCapacity();
+    }
+    void TxListAddCapacity(void *list, int num){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        txList->AppCapacity(num);
     }
 
-    // index list
-    void *NewIntList(){return (void *)(new List<int *>());}
-    void IntListAppend(void *list, int *newData){
-        List<int *> *intList = static_cast<List<int *> *>(list);
-        intList->Append(newData);
-    }
-    int *IntListGetByIndex(void *list, int idx){
-        List<int *> *intList = static_cast<List<int *> *>(list);
-        return intList->GetByIndex(idx);
-    }
+    /*************** index list ***************/
+//    void *NewIntList(){return (void *)(new List<int *>());}
+//    void IntListAppend(void *list, int *newData){
+//        List<int *> *intList = static_cast<List<int *> *>(list);
+//        intList->Append(newData);
+//    }
+//    int *IntListGetByIndex(void *list, int idx){
+//        List<int *> *intList = static_cast<List<int *> *>(list);
+//        return intList->GetPtrByIndex(idx);
+//    }
 
     /* The following rules are executed individually, */
+    /**************** Rule class: a prototype for rules ***************/
     class Rule{
         protected:
             float amtThresh;
@@ -146,8 +135,10 @@ extern "C"{
     };
     Rule* NewRule(float amtThresh, int timesThresh){return new Rule(amtThresh, timesThresh);}
 //    bool RunRule(Rule* rulePtr, TransactionList *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
-    bool RunRule(Rule* rulePtr, void *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
     float RuleGetAmtThresh(Rule* rulePtr){return rulePtr->GetAmtThresh();}
+
+    /**************** common function for rule***************/
+    bool RunRule(Rule* rulePtr, void *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
 
     /**************** inherit from Rule ***************/
     class RuleA1:public Rule{

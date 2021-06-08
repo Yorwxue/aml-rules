@@ -11,6 +11,8 @@ print(libRule)
 libRule.connect()
 
 # return setting of c based function
+# libRule.GetTxListSize.restype = ctypes.c_int  # unnecessary
+# libRule.GetTxListCapacity.restype = ctypes.c_int  # unnecessary
 libRule.TxGetAmount.restype = ctypes.c_float
 libRule.TxGetDateTime.restype = ctypes.c_ulonglong
 libRule.TxGetChannelPtr.restype = ctypes.c_char_p
@@ -37,14 +39,36 @@ class Transaction(object):
 
 
 class TransactionList(object):
-    def __init__(self, txList=None):
+    def __init__(self, txList=None, reserveSize=150000):
         self.obj = libRule.NewTransactionList()
+        self.reserveSize = reserveSize
+        if txList:
+            self.AppendMany(txList)
+
+    def AddCapacity(self, num):
+        # raise NotImplementedError("")
+        libRule.TxListAddCapacity(self.obj, num)
+
+    def Append(self, newTxPtr):
+        libRule.TxListAppend(self.obj, newTxPtr)
+
+    def AppendMany(self, txList):
+        length = len(txList)
+        available = self.GetCapacity() - self.GetSize()
+        if length > available:
+            self.AddCapacity(self.reserveSize + length)
         for tx in txList:
             txPtr = tx.obj
-            libRule.TxListAppend(self.obj, txPtr)
+            self.Append(txPtr)
 
-    def GetByIndex(self, idx):
-        return libRule.TxListGetByIndex(self.obj, idx)
+    def GetPtrByIndex(self, idx):
+        return libRule.TxListGetPtrByIndex(self.obj, idx)
+
+    def GetSize(self):
+        return libRule.GetTxListSize(self.obj)
+
+    def GetCapacity(self):
+        return libRule.GetTxListCapacity(self.obj)
 
 
 class Rule(object):
@@ -126,11 +150,15 @@ if __name__ == "__main__":
     # print("tx1.GetAmt:", tx1.GetAmount())
     # print("tx1.GetChannel:", tx1.GetChannel())
 
-    txList = TransactionList([tx1, tx2, tx3])
+    START = time.time()
+    txList = TransactionList([tx1, tx2, tx3] * 1000000)
+    print("Collect tranactions spent %f seconds" % (time.time() - START))
+    print("Size: %d" % txList.GetSize())
+    print("Capacity: %d" % txList.GetCapacity())
 
     # check address are the same
     # print(tx1.obj)
-    # print(txList.GetByIndex(0))
+    # print(txList.GetPtrByIndex(0))
 
     # rule test
     # ruleTest.Run(txList)
