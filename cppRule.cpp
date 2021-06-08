@@ -85,17 +85,6 @@ extern "C"{
         txList->AppCapacity(num);
     }
 
-    /*************** index list ***************/
-//    void *NewIntList(){return (void *)(new List<int *>());}
-//    void IntListAppend(void *list, int *newData){
-//        List<int *> *intList = static_cast<List<int *> *>(list);
-//        intList->Append(newData);
-//    }
-//    int *IntListGetByIndex(void *list, int idx){
-//        List<int *> *intList = static_cast<List<int *> *>(list);
-//        return intList->GetPtrByIndex(idx);
-//    }
-
     /* The following rules are executed individually, */
     /**************** Rule class: a prototype for rules ***************/
     class Rule{
@@ -153,35 +142,33 @@ extern "C"{
     Rule* NewRuleA1(float amtThresh, int timesThresh){return new RuleA1(amtThresh, timesThresh);}
     /**************************************************/
 
-    /* Here is a prototype of rule pipeline, each member function may be one stage for several rules *
-    class RulePipeline{
-        protected:
-        public:
-            unsigned int *DateTimeFilter(TransactionList *txList, unsigned long long dateTimeStart, Transaction *newTx){
-                unsigned int *MatchedTxIndexArray = new unsigned int[5];
-                std::vector<Transaction*>::iterator txPtr;
-                int i, count=0;
-                for(i=0, txPtr=(txList->Vec).begin();
-                    txPtr!=(txList->Vec).end() &&
-                        (*txPtr)->GetDateTime()>=dateTimeStart;
-                    txPtr++, i++){
-                        MatchedTxIndexArray[count++] = i;
-                }
-                return MatchedTxIndexArray;
-            }
-            unsigned int *AmountThreshFilter(TransactionList *txList, unsigned int *TxIndexArray, float amtThresh, Transaction *newTx){
-                unsigned int *MatchedTxIndexArray = new unsigned int[5];
-                std::vector<Transaction*>::iterator txPtr;
-                int i, count=0;
-                for(i=0, txPtr=(txList->Vec).begin();
-                    txPtr!=(txList->Vec).end() &&
-                        (*txPtr)->GetAmount()>=amtThresh;
-                    txPtr++, i++){
-                        MatchedTxIndexArray[count++] = i;
-                }
-                return MatchedTxIndexArray;
-            }
-    };
+    /* a prototype of rule pipeline, each function may be one stage for several rules */
+    void *RulePipelineDateTimeFilter(void *list, unsigned long long dateTimeStart, unsigned long long dateTimeEnd){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        List<Transaction *> *MatchedTxList = new List<Transaction *>();
+        std::vector<Transaction*>::iterator txPtr;
+        for(txPtr=(txList->Vec).begin();
+            txPtr!=(txList->Vec).end() &&
+                (*txPtr)->GetDateTime()<=dateTimeEnd;  // technically transactions are been append by the order of date-time(FIFO like)
+            txPtr++){
+            if((*txPtr)->GetDateTime()>=dateTimeStart)
+                MatchedTxList->Append(*txPtr);
+        }
+        return (void *)MatchedTxList;
+    }
+    unsigned int *AmountThreshFilter(void *list, unsigned int *TxIndexArray, float amtThresh, Transaction *newTx){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        unsigned int *MatchedTxIndexArray = new unsigned int[5];
+        std::vector<Transaction*>::iterator txPtr;
+        int i, count=0;
+        for(i=0, txPtr=(txList->Vec).begin();
+            txPtr!=(txList->Vec).end() &&
+                (*txPtr)->GetAmount()>=amtThresh;
+            txPtr++, i++){
+                MatchedTxIndexArray[count++] = i;
+        }
+        return MatchedTxIndexArray;
+    }
     /*************************************************************************************************/
 }
 int main(){
