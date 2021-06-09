@@ -11,14 +11,19 @@ print(libRule)
 libRule.connect()
 
 # return setting of c based function
+# TransactionList
 # libRule.GetTxListSize.restype = ctypes.c_int  # unnecessary
 # libRule.GetTxListCapacity.restype = ctypes.c_int  # unnecessary
+# Transaction
 libRule.TxGetAmount.restype = ctypes.c_float
 libRule.TxGetDateTime.restype = ctypes.c_ulonglong
-libRule.TxGetChannelPtr.restype = ctypes.c_char_p
-libRule.TxGetBehaviorPtr.restype = ctypes.c_char_p
+libRule.TxGetChannel.restype = ctypes.c_char_p
+libRule.TxGetBehavior.restype = ctypes.c_char_p
+# Rule
 libRule.RuleGetAmtThresh.restype = ctypes.c_float
 libRule.RunRule.restype = ctypes.c_bool
+# StringList
+libRule.StringListGetDataByIndex.restype = ctypes.c_char_p
 
 
 class Transaction(object):
@@ -26,7 +31,7 @@ class Transaction(object):
         if txPtr:
             self.obj = txPtr
         elif dateTime and amt and channel and behavior:
-            self.obj = libRule.NewTransaction(dateTime, ctypes.c_float(amt), ctypes.c_char_p(channel), ctypes.c_char_p(behavior))
+            self.obj = libRule.NewTransaction(dateTime, ctypes.c_float(amt), ctypes.c_char_p(channel.encode('utf-8')), ctypes.c_char_p(behavior.encode('utf-8')))
         else:
             raise ValueError("Invalid parameters for constructor")
 
@@ -37,10 +42,10 @@ class Transaction(object):
         return libRule.TxGetAmount(self.obj)
 
     def GetChannel(self):
-        return libRule.TxGetChannelPtr(self.obj)
+        return libRule.TxGetChannel(self.obj)
 
     def GetBehavior(self):
-        return libRule.TxGetBehaviorPtr(self.obj)
+        return libRule.TxGetBehavior(self.obj)
 
 
 class TransactionList(object):
@@ -69,17 +74,33 @@ class TransactionList(object):
             txPtr = tx.obj
             self.Append(txPtr)
 
-    def GetPtrByIndex(self, idx):
-        return libRule.TxListGetPtrByIndex(self.obj, idx)
+    def GetDataByIndex(self, idx):
+        return libRule.TxListGetDataByIndex(self.obj, idx)
 
     def GetTxByIndex(self, idx):
-        return Transaction(txPtr=self.GetPtrByIndex(idx))
+        return Transaction(txPtr=self.GetDataByIndex(idx))
 
     def GetSize(self):
         return libRule.GetTxListSize(self.obj)
 
     def GetCapacity(self):
         return libRule.GetTxListCapacity(self.obj)
+
+
+class StringList(object):
+    def __init__(self, stringList=[]):
+        self.obj = libRule.NewStringList()
+        for string in stringList:
+            self.Append(string)
+
+    def Append(self, newData):
+        libRule.StringListAppend(self.obj, ctypes.c_char_p(newData.encode('utf-8')))
+
+    def GetDataByIndex(self, idx):
+        return libRule.StringListGetDataByIndex(self.obj, idx)
+
+    def GetSize(self):
+        return libRule.GetStringListSize(self.obj)
 
 
 class Rule(object):
@@ -117,6 +138,7 @@ def IntDateTime2Py(dateTimeInInt):
 
 
 if __name__ == "__main__":
+    stringList = StringList(stringList=["轉入", "存入"])
     rule1 = Rule(
         amtThresh=10.0,
         timesThresh=2
@@ -143,20 +165,20 @@ if __name__ == "__main__":
     tx1 = Transaction(
         PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
         10,
-        "IBMB".encode('utf-8'),
-        "轉入".encode('utf-8')
+        "IBMB",
+        "轉入"
     )
     tx2 = Transaction(
         PyDateTime2C(datetime.datetime.now() + datetime.timedelta(minutes=-33, seconds=15)),
         20,
-        "Oversea".encode('utf-8'),
-        "轉帳".encode('utf-8')
+        "Oversea",
+        "轉帳"
     )
     tx3 = Transaction(
         PyDateTime2C(datetime.datetime.now()),
         20,
-        "IBMB".encode('utf-8'),
-        "轉帳".encode('utf-8')
+        "IBMB",
+        "存入"
     )
 
     START = time.time()
@@ -189,10 +211,14 @@ if __name__ == "__main__":
     selectedTxList = TransactionList(txPtrList=selectedTxPtrList)
     if selectedTxList.GetSize():
         selectedTx = selectedTxList.GetTxByIndex(0)
-        print("DateTime: %s, Amount: %s, Channel: %s" % (
-            selectedTx.GetAmount(),
+        print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
             selectedTx.GetDateTime(),
-            selectedTx.GetChannel()
+            selectedTx.GetAmount(),
+            selectedTx.GetChannel(),
+            selectedTx.GetBehavior()
         ))
     else:
         print("No transactions match the condition")
+
+    for i in range(stringList.GetSize()):
+        print(stringList.GetDataByIndex(i))

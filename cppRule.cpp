@@ -14,7 +14,7 @@ class List{
         void Append(T newData){
             this->Vec.push_back(newData);
         }
-        T GetPtrByIndex(int idx){
+        T GetDataByIndex(int idx){
             int VecSize = this->Vec.size();
             if(idx<VecSize)
                 return this->Vec.at(idx);
@@ -59,8 +59,8 @@ extern "C"{
     Transaction *NewTransaction(unsigned long long dateTime, float amt, char * const channelPtr, char * const behaviorPtr){return new Transaction(dateTime, amt, channelPtr, behaviorPtr);}
     unsigned long long TxGetDateTime(Transaction* txPtr){return (txPtr->GetDateTime());}
     float TxGetAmount(Transaction* txPtr){return (txPtr->GetAmount());}
-    const char *TxGetChannelPtr(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
-    const char *TxGetBehaviorPtr(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
+    const char *TxGetChannel(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
+    const char *TxGetBehavior(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
 
     /*************** transaction list ***************/
     void *NewTransactionList(){return (void *)(new List<Transaction *>());}
@@ -68,9 +68,9 @@ extern "C"{
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         txList->Append(newData);
     };
-    Transaction *TxListGetPtrByIndex(void *list, int idx){
+    Transaction *TxListGetDataByIndex(void *list, int idx){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
-        return txList->GetPtrByIndex(idx);
+        return txList->GetDataByIndex(idx);
     }
     int GetTxListSize(void *list){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
@@ -83,6 +83,23 @@ extern "C"{
     void TxListAddCapacity(void *list, int num){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         txList->AppCapacity(num);
+    }
+
+    /*************** string list ***************/
+    void *NewStringList(){return (void *)(new List<std::string>());}
+    void StringListAppend(void *list, char * const newData){
+        List<std::string> *stringList = static_cast<List<std::string> *>(list);
+        stringList->Append(newData);
+    }
+    int GetStringListSize(void *list){
+        List<std::string> *stringList = static_cast<List<std::string> *>(list);
+        return stringList->GetSize();
+    }
+    char *StringListGetDataByIndex(void *list, int idx){
+        List<std::string> *stringList = static_cast<List<std::string> *>(list);
+        char *ret = new char[255];
+        strcpy(ret, (stringList->GetDataByIndex(idx)).c_str());
+        return ret;  // TODO: still return unreadable data
     }
 
     /* The following rules are executed individually, */
@@ -156,18 +173,51 @@ extern "C"{
         }
         return (void *)MatchedTxList;
     }
-    unsigned int *AmountThreshFilter(void *list, unsigned int *TxIndexArray, float amtThresh, Transaction *newTx){
+    void *RulePipelineAmountThreshFilter(void *list, unsigned int *TxIndexArray, float amtThresh, Transaction *newTx){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
-        unsigned int *MatchedTxIndexArray = new unsigned int[5];
+        List<Transaction *> *MatchedTxList = new List<Transaction *>();
         std::vector<Transaction*>::iterator txPtr;
-        int i, count=0;
-        for(i=0, txPtr=(txList->Vec).begin();
+        for(txPtr=(txList->Vec).begin();
             txPtr!=(txList->Vec).end() &&
                 (*txPtr)->GetAmount()>=amtThresh;
-            txPtr++, i++){
-                MatchedTxIndexArray[count++] = i;
+            txPtr++){
+                MatchedTxList->Append(*txPtr);
         }
-        return MatchedTxIndexArray;
+        return (void *)MatchedTxList;
+    }
+    void *RulePipelineConditionMatchFilter(void *list, char * const fieldName, void *condList){
+        ////////////////////////////////////////////////////////////////
+        // :param void *condList: condList is a List<std::string> object with string element which should be matched as conditions
+        // :param char * const fieldName: a string to select field for comparing with conditions
+        // :return: list of list of Transaction, number of elements in first layer is decided by number of elements in
+        //          condList, and the number of elements in second layer is decided by how many transactions fit the condition
+        ////////////////////////////////////////////////////////////////
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        List<std::string> *condStringList = static_cast<List<std::string> *>(condList);
+        // create list
+        List<List<Transaction *> *> *MatchedTxListsList = new List<List<Transaction *> *>();
+        int numConditions = condStringList->GetSize();
+        for(int i=0; i<numConditions; i++){
+            MatchedTxListsList->Append(new List<Transaction *>());
+        }
+        //go through transactions and compare
+        if(fieldName=="channel"){}
+        else if(fieldName=="behavior"){
+            std::vector<Transaction*>::iterator txPtr;
+            for(txPtr=(txList->Vec).begin();
+                txPtr!=(txList->Vec).end();
+                txPtr++){
+                    for(int i=0; i<numConditions; i++){
+                        if((*txPtr)->GetBehavior()==(condStringList->GetDataByIndex(i))){
+                            std::cout << "Found transaction match behavior:" << condStringList->GetDataByIndex(i) << std::endl;
+                        }
+                    }
+            }
+        }
+        else
+            std::cout << "Invalid Field Name: " << fieldName << ", should be \"channel\" or \"behavior\"" << std::endl;
+
+        return (void *)MatchedTxListsList;
     }
     /*************************************************************************************************/
 }
