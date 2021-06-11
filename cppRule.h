@@ -13,6 +13,9 @@ extern "C" Transaction *TxListGetDataByIndex(void *txList, int idx);
 extern "C" int GetTxListSize(void *list);
 extern "C" int GetTxListCapacity(void *list);
 extern "C" void TxListAddCapacity(void *list, int num);
+// Transaction2DList
+extern "C" void *Tx2DListGetDataByIndex(void *list, int idx);
+extern "C" int GetTx2DListSize(void *list);
 // StringList
 extern "C" void *NewStringList();
 extern "C" void StringListAppend(void *list, char * const newData);

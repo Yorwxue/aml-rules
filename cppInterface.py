@@ -87,6 +87,17 @@ class TransactionList(object):
         return libRule.GetTxListCapacity(self.obj)
 
 
+class Transaction2DList(object):
+    def __init__(self, txPtr2DList):
+        self.obj = txPtr2DList
+
+    def GetDataByIndex(self, idx):
+        return libRule.Tx2DListGetDataByIndex(self.obj, idx)
+
+    def GetSize(self):
+        return libRule.GetTx2DListSize(self.obj)
+
+
 class StringList(object):
     def __init__(self, stringList=[]):
         self.obj = libRule.NewStringList()
@@ -138,7 +149,6 @@ def IntDateTime2Py(dateTimeInInt):
 
 
 if __name__ == "__main__":
-    stringList = StringList(stringList=["轉入", "存入"])
     rule1 = Rule(
         amtThresh=10.0,
         timesThresh=2
@@ -203,6 +213,8 @@ if __name__ == "__main__":
     print("Spent %f seconds" % (END - START))
 
     print("rule pipeline ..")
+    # stage 1
+    print("=== Stage 1 ===")
     selectedTxPtrList = libRule.RulePipelineDateTimeFilter(
         txList.obj,
         PyDateTime2C(datetime.datetime.now() + datetime.timedelta(minutes=-5)),
@@ -210,7 +222,7 @@ if __name__ == "__main__":
     )
     selectedTxList = TransactionList(txPtrList=selectedTxPtrList)
     numMatched = selectedTxList.GetSize()
-    print("Found %d data matched conditions" % numMatched)
+    print("Found %d transactions matched conditions" % numMatched)
     for i in range(numMatched):
         selectedTx = selectedTxList.GetTxByIndex(i)
         print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
@@ -219,5 +231,28 @@ if __name__ == "__main__":
             selectedTx.GetChannel(),
             selectedTx.GetBehavior()
         ))
-    else:
-        print("No transactions match the condition")
+
+    # stage 2
+    print("=== Stage 2 ===")
+    fieldStringList = StringList(stringList=["轉入", "存入"])
+    condStringList = StringList(stringList=["轉入", "存入"])
+    for i in range(condStringList.GetSize()):
+        print("condition %d: %s" % (i, condStringList.GetDataByIndex(i)))
+    selectedTxPtr2DList = libRule.RulePipelineConditionMatchFilter(
+        txList.obj,
+        ctypes.c_char_p("behavior".encode('utf-8')),
+        condStringList.obj
+    )
+    selectedTx2DList = Transaction2DList(txPtr2DList=selectedTxPtr2DList)
+    numCondtions = selectedTx2DList.GetSize()
+    for i in range(numCondtions):
+        selectedTxList = TransactionList(txPtrList=selectedTx2DList.GetDataByIndex(i))
+        print("Found %d transactions matched condition:%s" % (numMatched, condStringList.GetDataByIndex(i)))
+        for j in range(numMatched):
+            selectedTx = selectedTxList.GetTxByIndex(j)
+            print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
+                selectedTx.GetDateTime(),
+                selectedTx.GetAmount(),
+                selectedTx.GetChannel(),
+                selectedTx.GetBehavior()
+            ))

@@ -85,6 +85,16 @@ extern "C"{
         txList->AppCapacity(num);
     }
 
+    /*************** transaction 2D-list ***************/
+    void *Tx2DListGetDataByIndex(void *list, int idx){
+        List<List<Transaction *> *> *tx2DList = static_cast<List<List<Transaction *> *> *>(list);
+        return tx2DList->GetDataByIndex(idx);
+    }
+    int GetTx2DListSize(void *list){
+        List<List<Transaction *> *> *tx2DList = static_cast<List<List<Transaction *> *> *>(list);
+        return tx2DList->GetSize();
+    }
+
     /*************** string list ***************/
     void *NewStringList(){return (void *)(new List<std::string>());}
     void StringListAppend(void *list, char * const newData){
@@ -184,7 +194,6 @@ extern "C"{
         return (void *)MatchedTxList;
     }
     void *RulePipelineConditionMatchFilter(void *list, char * const fieldName, void *condList){
-        // TODO: check result
         ////////////////////////////////////////////////////////////////
         // :param void *condList: condList is a List<std::string> object with string element which should be matched as conditions
         // :param char * const fieldName: a string to select field for comparing with conditions
@@ -193,30 +202,37 @@ extern "C"{
         ////////////////////////////////////////////////////////////////
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         List<std::string> *condStringList = static_cast<List<std::string> *>(condList);
+        std::string fieldNameString(fieldName);
         // create list
-        List<List<Transaction *> *> *MatchedTxListsList = new List<List<Transaction *> *>();
+        List<List<Transaction *> *> *MatchedTx2DList = new List<List<Transaction *> *>();
         int numConditions = condStringList->GetSize();
         for(int i=0; i<numConditions; i++){
-            MatchedTxListsList->Append(new List<Transaction *>());
+            MatchedTx2DList->Append(new List<Transaction *>());
         }
         //go through transactions and compare
-        if(fieldName=="channel"){}
-        else if(fieldName=="behavior"){
+        if(fieldNameString=="channel"){}
+        else if(fieldNameString=="behavior"){
             std::vector<Transaction*>::iterator txPtr;
             for(txPtr=(txList->Vec).begin();
                 txPtr!=(txList->Vec).end();
                 txPtr++){
                     for(int i=0; i<numConditions; i++){
                         if((*txPtr)->GetBehavior()==(condStringList->GetDataByIndex(i))){
-                            std::cout << "Found transaction match behavior:" << condStringList->GetDataByIndex(i) << std::endl;
+//                            std::cout << "Found transaction match behavior:" << condStringList->GetDataByIndex(i)
+//                                      << ", DateTime:" << (*txPtr)->GetDateTime()
+//                                      << ", Amount:" << (*txPtr)->GetAmount()
+//                                      << ", Channel:" << (*txPtr)->GetChannel()
+//                                      << std::endl;
+                            MatchedTx2DList->GetDataByIndex(i)->Append(*txPtr);
                         }
                     }
             }
         }
         else
-            std::cout << "Invalid Field Name: " << fieldName << ", should be \"channel\" or \"behavior\"" << std::endl;
+            std::cout << "Invalid Field Name" << ", should be \"channel\" or \"behavior\""
+                      << ", but got \"" << fieldNameString << "\"" << std::endl;
 
-        return (void *)MatchedTxListsList;
+        return (void *)MatchedTx2DList;
     }
     /*************************************************************************************************/
 }
