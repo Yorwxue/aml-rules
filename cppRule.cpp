@@ -110,7 +110,7 @@ extern "C"{
         return (stringList->GetDataByIndex(idx)).c_str();
     }
 
-    /* The following rules are executed individually, */
+    /* The following rules are executed individually */
     /**************** Rule class: a prototype for rules ***************/
     class Rule{
         protected:
@@ -151,7 +151,7 @@ extern "C"{
 //    bool RunRule(Rule* rulePtr, TransactionList *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
     float RuleGetAmtThresh(Rule* rulePtr){return rulePtr->GetAmtThresh();}
 
-    /**************** common function for rule***************/
+    /**************** common function for rule ***************/
     bool RunRule(Rule* rulePtr, void *txList, unsigned long long dateTimeStart){return rulePtr->Run(txList, dateTimeStart);}
 
     /**************** inherit from Rule ***************/

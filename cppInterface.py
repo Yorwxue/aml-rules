@@ -2,6 +2,7 @@ import os
 import ctypes
 import datetime
 import time
+import random
 
 
 libRule = ctypes.CDLL("./librule.so")
@@ -30,10 +31,10 @@ class Transaction(object):
     def __init__(self, dateTime=None, amt=None, channel=None, behavior=None, txPtr=None):
         if txPtr:
             self.obj = txPtr
-        elif dateTime and amt and channel and behavior:
+        elif (dateTime is not None) and (amt is not None) and (channel is not None) and (behavior is not None):
             self.obj = libRule.NewTransaction(dateTime, ctypes.c_float(amt), ctypes.c_char_p(channel.encode('utf-8')), ctypes.c_char_p(behavior.encode('utf-8')))
         else:
-            raise ValueError("Invalid parameters for constructor")
+            raise ValueError("Invalid parameters for constructor, must assign dateTime, amt, channel and behavior")
 
     def GetDateTime(self):
         return libRule.TxGetDateTime(self.obj)
@@ -149,6 +150,8 @@ def IntDateTime2Py(dateTimeInInt):
 
 
 if __name__ == "__main__":
+    # Experiment for rules that are been executed individually
+    """
     rule1 = Rule(
         amtThresh=10.0,
         timesThresh=2
@@ -211,20 +214,61 @@ if __name__ == "__main__":
     print("done")
     END = time.time()
     print("Spent %f seconds" % (END - START))
+    # """
 
-    print("rule pipeline ..")
+    print("Generate random transactions")
+    START = time.time()
+    numTx = 100000
+    txList, dateTimeList = list(), list()
+    # date-times generate
+    for i in range(numTx):
+        dateTimeList.append(datetime.datetime.now()+datetime.timedelta(
+            days=random.randint(-31, 0),
+            hours=random.randint(0, 24),
+            minutes=random.randint(0, 60),
+            seconds=random.randint(0, 60))
+        )
+    # candidate list for each field
+    channelCandidateList = ["IBMB", "Oversea"]
+    behaviorCandidateList = ["轉入", "存入", "轉帳"]
+    # transactions generate
+    dateTimeList.sort()
+    for idx, dateTime in enumerate(dateTimeList):
+        amt = random.randint(0, 1000000)
+        channel = channelCandidateList[random.randint(0, len(channelCandidateList) - 1)]
+        behavior = behaviorCandidateList[random.randint(0, len(behaviorCandidateList) - 1)]
+        try:
+            txList.append(Transaction(dateTime=PyDateTime2C(dateTime), amt=amt, channel=channel, behavior=behavior))
+        except Exception as e:
+            print("TxId %d, DateTime: \"%s\", amount: %d, channel: \"%s\", behavior: \"%s\"" % (
+                idx, dateTime.strftime("%Y%m%d%H%M%S"), amt, channel, behavior))
+            raise e
+    END = time.time()
+    print("Data generation spent %f seconds" % (END - START))
+
+    # convert to c types
+    print("Create c++-based txList")
+    START = time.time()
+    txList = TransactionList(txList)
+    END = time.time()
+    print("Create list spent %f seconds" % (END - START))
+
+    # rule pipeline
+    print("Number of transactions: %d" % txList.GetSize())
+    print("Start rule pipeline ..")
+    START = time.time()
     # stage 1
     print("=== Stage 1 ===")
-    selectedTxPtrList = libRule.RulePipelineDateTimeFilter(
+    stage1TxPtrList = libRule.RulePipelineDateTimeFilter(
         txList.obj,
         PyDateTime2C(datetime.datetime.now() + datetime.timedelta(minutes=-5)),
         PyDateTime2C(datetime.datetime.now())
     )
-    selectedTxList = TransactionList(txPtrList=selectedTxPtrList)
-    numMatched = selectedTxList.GetSize()
+    stage1TxList = TransactionList(txPtrList=stage1TxPtrList)
+    numMatched = stage1TxList.GetSize()
     print("Found %d transactions matched conditions" % numMatched)
     for i in range(numMatched):
-        selectedTx = selectedTxList.GetTxByIndex(i)
+        selectedTx = stage1TxList.GetTxByIndex(i)
         print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
             selectedTx.GetDateTime(),
             selectedTx.GetAmount(),
@@ -236,23 +280,26 @@ if __name__ == "__main__":
     print("=== Stage 2 ===")
     fieldStringList = StringList(stringList=["轉入", "存入"])
     condStringList = StringList(stringList=["轉入", "存入"])
-    for i in range(condStringList.GetSize()):
-        print("condition %d: %s" % (i, condStringList.GetDataByIndex(i)))
-    selectedTxPtr2DList = libRule.RulePipelineConditionMatchFilter(
-        txList.obj,
+    # for i in range(condStringList.GetSize()):
+    #     print("condition %d: %s" % (i, condStringList.GetDataByIndex(i)))
+    stage2TxPtr2DList = libRule.RulePipelineConditionMatchFilter(
+        stage1TxList.obj,
         ctypes.c_char_p("behavior".encode('utf-8')),
         condStringList.obj
     )
-    selectedTx2DList = Transaction2DList(txPtr2DList=selectedTxPtr2DList)
-    numCondtions = selectedTx2DList.GetSize()
+    stage2Tx2DList = Transaction2DList(txPtr2DList=stage2TxPtr2DList)
+    numCondtions = stage2Tx2DList.GetSize()
     for i in range(numCondtions):
-        selectedTxList = TransactionList(txPtrList=selectedTx2DList.GetDataByIndex(i))
+        stage2TxList = TransactionList(txPtrList=stage2Tx2DList.GetDataByIndex(i))
+        numMatched = stage2TxList.GetSize()
         print("Found %d transactions matched condition:%s" % (numMatched, condStringList.GetDataByIndex(i)))
         for j in range(numMatched):
-            selectedTx = selectedTxList.GetTxByIndex(j)
+            selectedTx = stage2TxList.GetTxByIndex(j)
             print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
                 selectedTx.GetDateTime(),
                 selectedTx.GetAmount(),
                 selectedTx.GetChannel(),
                 selectedTx.GetBehavior()
             ))
+    END = time.time()
+    print("Rule-pipeline spent %f seconds" % (END - START))
