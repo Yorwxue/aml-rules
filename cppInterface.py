@@ -42,10 +42,10 @@ class Transaction(object):
         return libRule.TxGetAmount(self.obj)
 
     def GetChannel(self):
-        return libRule.TxGetChannel(self.obj)
+        return libRule.TxGetChannel(self.obj).decode("utf-8")
 
     def GetBehavior(self):
-        return libRule.TxGetBehavior(self.obj)
+        return libRule.TxGetBehavior(self.obj).decode("utf-8")
 
 
 class TransactionList(object):
@@ -97,7 +97,7 @@ class StringList(object):
         libRule.StringListAppend(self.obj, ctypes.c_char_p(newData.encode('utf-8')))
 
     def GetDataByIndex(self, idx):
-        return libRule.StringListGetDataByIndex(self.obj, idx)
+        return libRule.StringListGetDataByIndex(self.obj, idx).decode("utf-8")
 
     def GetSize(self):
         return libRule.GetStringListSize(self.obj)
@@ -209,8 +209,10 @@ if __name__ == "__main__":
         PyDateTime2C(datetime.datetime.now())
     )
     selectedTxList = TransactionList(txPtrList=selectedTxPtrList)
-    if selectedTxList.GetSize():
-        selectedTx = selectedTxList.GetTxByIndex(0)
+    numMatched = selectedTxList.GetSize()
+    print("Found %d data matched conditions" % numMatched)
+    for i in range(numMatched):
+        selectedTx = selectedTxList.GetTxByIndex(i)
         print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
             selectedTx.GetDateTime(),
             selectedTx.GetAmount(),
@@ -219,6 +221,3 @@ if __name__ == "__main__":
         ))
     else:
         print("No transactions match the condition")
-
-    for i in range(stringList.GetSize()):
-        print(stringList.GetDataByIndex(i))

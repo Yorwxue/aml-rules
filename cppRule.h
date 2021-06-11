@@ -17,7 +17,7 @@ extern "C" void TxListAddCapacity(void *list, int num);
 extern "C" void *NewStringList();
 extern "C" void StringListAppend(void *list, char * const newData);
 extern "C" int GetStringListSize(void *list);
-extern "C" char *StringListGetDataByIndex(void *list, int idx);
+extern "C" const char *StringListGetDataByIndex(void *list, int idx);
 // Rule
 extern "C" class Rule;
 extern "C" Rule* NewRule(float amtThresh_in, int timesThresh);

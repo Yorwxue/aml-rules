@@ -95,11 +95,9 @@ extern "C"{
         List<std::string> *stringList = static_cast<List<std::string> *>(list);
         return stringList->GetSize();
     }
-    char *StringListGetDataByIndex(void *list, int idx){
+    const char *StringListGetDataByIndex(void *list, int idx){
         List<std::string> *stringList = static_cast<List<std::string> *>(list);
-        char *ret = new char[255];
-        strcpy(ret, (stringList->GetDataByIndex(idx)).c_str());
-        return ret;  // TODO: still return unreadable data
+        return (stringList->GetDataByIndex(idx)).c_str();
     }
 
     /* The following rules are executed individually, */
@@ -186,6 +184,7 @@ extern "C"{
         return (void *)MatchedTxList;
     }
     void *RulePipelineConditionMatchFilter(void *list, char * const fieldName, void *condList){
+        // TODO: check result
         ////////////////////////////////////////////////////////////////
         // :param void *condList: condList is a List<std::string> object with string element which should be matched as conditions
         // :param char * const fieldName: a string to select field for comparing with conditions
