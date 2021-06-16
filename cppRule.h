@@ -33,3 +33,4 @@ extern "C" Rule* NewRuleA1(float amtThresh_in, int timesThresh);
 extern "C" void *RulePipelineDateTimeFilter(void *list, unsigned long long dateTimeStart, unsigned long long dateTimeEnd);
 extern "C" void *RulePipelineAmountThreshFilter(void *list, unsigned int *TxIndexArray, float amtThresh, Transaction *newTx);
 extern "C" void *RulePipelineConditionMatchFilter(void *list, char * const fieldName, void *condList);
+extern "C" void *RulePipelineConditionExcludeFilter(void *list, char * const fieldName, void *condList);

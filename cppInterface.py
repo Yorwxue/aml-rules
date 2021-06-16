@@ -22,6 +22,7 @@ libRule.StringListAppend.argtypes = [ctypes.c_int64, ctypes.c_char_p]  # pointer
 # RulePipeline
 libRule.RulePipelineDateTimeFilter.argtypes = [ctypes.c_int64, ctypes.c_ulonglong, ctypes.c_ulonglong]  # pointers been defined as c_int64 because of 64-bits reference
 libRule.RulePipelineConditionMatchFilter.argtypes = [ctypes.c_int64, ctypes.c_char_p, ctypes.c_int64]
+libRule.RulePipelineConditionExcludeFilter.argtypes = [ctypes.c_int64, ctypes.c_char_p, ctypes.c_int64]
 
 ########### return setting of c based function ##########
 # TransactionList
@@ -290,13 +291,11 @@ if __name__ == "__main__":
 
     # stage 2
     print("=== Stage 2 ===")
-    fieldStringList = StringList(stringList=["轉入", "存入"])
+    fieldName = "behavior".encode('utf-8')
     condStringList = StringList(stringList=["轉入", "存入"])
-    # for i in range(condStringList.GetSize()):
-    #     print("condition %d: %s" % (i, condStringList.GetDataByIndex(i)))
     stage2TxPtr2DList = libRule.RulePipelineConditionMatchFilter(
         stage1TxList.obj,
-        "behavior".encode('utf-8'),
+        fieldName,
         condStringList.obj
     )
     stage2Tx2DList = Transaction2DList(txPtr2DList=stage2TxPtr2DList)
@@ -313,5 +312,28 @@ if __name__ == "__main__":
                 selectedTx.GetChannel(),
                 selectedTx.GetBehavior()
             ))
+    END = time.time()
+    print("Rule-pipeline spent %f seconds" % (END - START))
+
+    # stage X (experiment: RulePipelineConditionExcludeFilter)
+    print("=== Stage X ===")
+    fieldName = "behavior".encode('utf-8')
+    condStringList = StringList(stringList=["轉入"])
+    stageXTxPtrList = libRule.RulePipelineConditionExcludeFilter(
+        stage1TxList.obj,
+        fieldName,
+        condStringList.obj
+    )
+    stageXTxList = TransactionList(txPtrList=stageXTxPtrList)
+    numMatched = stageXTxList.GetSize()
+    print("Found %d transactions matched the excluded-condition:[%s]" % (numMatched, ", ".join([condStringList.GetDataByIndex(i) for i in range(condStringList.GetSize())])))
+    for j in range(numMatched):
+        selectedTx = stageXTxList.GetTxByIndex(j)
+        print("DateTime: %s, Amount: %s, Channel: %s, Behavior: %s" % (
+            selectedTx.GetDateTime(),
+            selectedTx.GetAmount(),
+            selectedTx.GetChannel(),
+            selectedTx.GetBehavior()
+        ))
     END = time.time()
     print("Rule-pipeline spent %f seconds" % (END - START))

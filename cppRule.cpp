@@ -215,17 +215,18 @@ extern "C"{
             std::vector<Transaction*>::iterator txPtr;
             for(txPtr=(txList->Vec).begin();
                 txPtr!=(txList->Vec).end();
-                txPtr++){
-                    for(int i=0; i<numConditions; i++){
-                        if((*txPtr)->GetBehavior()==(condStringList->GetDataByIndex(i))){
+                txPtr++)
+            {
+                for(int i=0; i<numConditions; i++){
+                    if((*txPtr)->GetBehavior()==(condStringList->GetDataByIndex(i))){
 //                            std::cout << "Found transaction match behavior:" << condStringList->GetDataByIndex(i)
 //                                      << ", DateTime:" << (*txPtr)->GetDateTime()
 //                                      << ", Amount:" << (*txPtr)->GetAmount()
 //                                      << ", Channel:" << (*txPtr)->GetChannel()
 //                                      << std::endl;
-                            MatchedTx2DList->GetDataByIndex(i)->Append(*txPtr);
-                        }
+                        MatchedTx2DList->GetDataByIndex(i)->Append(*txPtr);
                     }
+                }
             }
         }
         else
@@ -233,6 +234,39 @@ extern "C"{
                       << ", but got \"" << fieldNameString << "\"" << std::endl;
 
         return (void *)MatchedTx2DList;
+    }
+    void *RulePipelineConditionExcludeFilter(void *list, char * const fieldName, void *condList){
+        ////////////////////////////////////////////////////////////////
+        // :param void *condList: condList is a List<std::string> object with string element which should be excluded as conditions
+        // :param char * const fieldName: a string to select field for comparing with conditions
+        // :return: list of Transactions without particular element in specific field
+        ////////////////////////////////////////////////////////////////
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        List<std::string> *condStringList = static_cast<List<std::string> *>(condList);
+        std::string fieldNameString(fieldName);
+        // create list
+        List<Transaction *> *MatchedTxList = new List<Transaction *>();
+        int numConditions = condStringList->GetSize();
+        //go through transactions and compare
+        if(fieldNameString=="channel"){}
+        else if(fieldNameString=="behavior"){
+            std::vector<Transaction*>::iterator txPtr;
+            for(txPtr=(txList->Vec).begin(); txPtr!=(txList->Vec).end(); txPtr++){
+                bool matchFlag = true;
+                for(int i=0; i<numConditions; i++){
+                    if((*txPtr)->GetBehavior()==(condStringList->GetDataByIndex(i))){
+                        matchFlag = false;
+                    }
+                }
+                if(matchFlag)
+                    MatchedTxList->Append(*txPtr);
+            }
+        }
+        else
+            std::cout << "Invalid Field Name" << ", should be \"channel\" or \"behavior\""
+                      << ", but got \"" << fieldNameString << "\"" << std::endl;
+
+        return (void *)MatchedTxList;
     }
     /*************************************************************************************************/
 }
