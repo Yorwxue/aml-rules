@@ -11,7 +11,19 @@ libRule = ctypes.CDLL("./librule.so")
 print(libRule)
 libRule.connect()
 
-# return setting of c based function
+########## parameter setting for calling libraries ##########
+# Transaction
+libRule.NewTransaction.argtypes = [ctypes.c_ulonglong, ctypes.c_float, ctypes.c_char_p, ctypes.c_char_p]
+# Rule
+libRule.NewRule.argtypes = [ctypes.c_float, ctypes.c_ulonglong]
+libRule.NewRuleA1.argtypes = [ctypes.c_float, ctypes.c_ulonglong]
+# StringList
+libRule.StringListAppend.argtypes = [ctypes.c_int64, ctypes.c_char_p]  # pointers been defined as c_int64 because of 64-bits reference
+# RulePipeline
+libRule.RulePipelineDateTimeFilter.argtypes = [ctypes.c_int64, ctypes.c_ulonglong, ctypes.c_ulonglong]  # pointers been defined as c_int64 because of 64-bits reference
+libRule.RulePipelineConditionMatchFilter.argtypes = [ctypes.c_int64, ctypes.c_char_p, ctypes.c_int64]
+
+########### return setting of c based function ##########
 # TransactionList
 # libRule.GetTxListSize.restype = ctypes.c_int  # unnecessary
 # libRule.GetTxListCapacity.restype = ctypes.c_int  # unnecessary
@@ -32,7 +44,7 @@ class Transaction(object):
         if txPtr:
             self.obj = txPtr
         elif (dateTime is not None) and (amt is not None) and (channel is not None) and (behavior is not None):
-            self.obj = libRule.NewTransaction(dateTime, ctypes.c_float(amt), ctypes.c_char_p(channel.encode('utf-8')), ctypes.c_char_p(behavior.encode('utf-8')))
+            self.obj = libRule.NewTransaction(dateTime, amt, channel.encode('utf-8'), behavior.encode('utf-8'))
         else:
             raise ValueError("Invalid parameters for constructor, must assign dateTime, amt, channel and behavior")
 
@@ -106,7 +118,7 @@ class StringList(object):
             self.Append(string)
 
     def Append(self, newData):
-        libRule.StringListAppend(self.obj, ctypes.c_char_p(newData.encode('utf-8')))
+        libRule.StringListAppend(self.obj, newData.encode('utf-8'))
 
     def GetDataByIndex(self, idx):
         return libRule.StringListGetDataByIndex(self.obj, idx).decode("utf-8")
@@ -117,7 +129,7 @@ class StringList(object):
 
 class Rule(object):
     def __init__(self, amtThresh=0., timesThresh=0):
-        self.obj = libRule.NewRule(ctypes.c_float(amtThresh), ctypes.c_ulonglong(timesThresh))
+        self.obj = libRule.NewRule(amtThresh, timesThresh)
 
     def Run(self, txList, dateTimeStart=0):
         txListPtr = txList.obj
@@ -129,16 +141,16 @@ class Rule(object):
 
 class RuleA1(Rule):
     def __init__(self, amtThresh=0., timesThresh=0):
-        self.obj = libRule.NewRuleA1(ctypes.c_float(amtThresh), ctypes.c_ulonglong(timesThresh))
+        self.obj = libRule.NewRuleA1(amtThresh, timesThresh)
 
 
-def PyDateTime2C(dateTime):
+def PyDateTime2Int(dateTime):
     """
-    return dateTime in unsigned-long-long format as YYYYmmddHHMMDDSS for input parameter of c++ based function
+    return dateTime in int format as YYYYmmddHHMMDDSS for converted to unsigned-long-longinput which is type of parameter for c++ based function
     param dateTime: python datetime object
     return:
     """
-    return ctypes.c_ulonglong(int(dateTime.strftime("%Y%m%d%H%M%S")))
+    return int(dateTime.strftime("%Y%m%d%H%M%S"))
 
 
 def IntDateTime2Py(dateTimeInInt):
@@ -176,19 +188,19 @@ if __name__ == "__main__":
     ]
 
     tx1 = Transaction(
-        PyDateTime2C(datetime.datetime.now()+datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
+        PyDateTime2Int(datetime.datetime.now()+datetime.timedelta(days=-2, hours=3, minutes=33, seconds=15)),
         10,
         "IBMB",
         "轉入"
     )
     tx2 = Transaction(
-        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(minutes=-33, seconds=15)),
+        PyDateTime2Int(datetime.datetime.now() + datetime.timedelta(minutes=-33, seconds=15)),
         20,
         "Oversea",
         "轉帳"
     )
     tx3 = Transaction(
-        PyDateTime2C(datetime.datetime.now()),
+        PyDateTime2Int(datetime.datetime.now()),
         20,
         "IBMB",
         "存入"
@@ -208,7 +220,7 @@ if __name__ == "__main__":
         print("rule %s:" % (ruleId+1))
         print("Start date time of rule test: ", dateTimeStart)
         print("Threshold of amount: %f" % rule.GetAmtThresh())
-        trigger = rule.Run(txList, PyDateTime2C(dateTimeStart))
+        trigger = rule.Run(txList, PyDateTime2Int(dateTimeStart))
         if trigger:
             print("=== Rule %s had been triggered. ===" % (ruleId+1))
     print("done")
@@ -238,7 +250,7 @@ if __name__ == "__main__":
         channel = channelCandidateList[random.randint(0, len(channelCandidateList) - 1)]
         behavior = behaviorCandidateList[random.randint(0, len(behaviorCandidateList) - 1)]
         try:
-            txList.append(Transaction(dateTime=PyDateTime2C(dateTime), amt=amt, channel=channel, behavior=behavior))
+            txList.append(Transaction(dateTime=PyDateTime2Int(dateTime), amt=amt, channel=channel, behavior=behavior))
         except Exception as e:
             print("TxId %d, DateTime: \"%s\", amount: %d, channel: \"%s\", behavior: \"%s\"" % (
                 idx, dateTime.strftime("%Y%m%d%H%M%S"), amt, channel, behavior))
@@ -261,8 +273,8 @@ if __name__ == "__main__":
     print("=== Stage 1 ===")
     stage1TxPtrList = libRule.RulePipelineDateTimeFilter(
         txList.obj,
-        PyDateTime2C(datetime.datetime.now() + datetime.timedelta(minutes=-5)),
-        PyDateTime2C(datetime.datetime.now())
+        PyDateTime2Int(datetime.datetime.now() + datetime.timedelta(minutes=-5)),
+        PyDateTime2Int(datetime.datetime.now())
     )
     stage1TxList = TransactionList(txPtrList=stage1TxPtrList)
     numMatched = stage1TxList.GetSize()
@@ -284,7 +296,7 @@ if __name__ == "__main__":
     #     print("condition %d: %s" % (i, condStringList.GetDataByIndex(i)))
     stage2TxPtr2DList = libRule.RulePipelineConditionMatchFilter(
         stage1TxList.obj,
-        ctypes.c_char_p("behavior".encode('utf-8')),
+        "behavior".encode('utf-8'),
         condStringList.obj
     )
     stage2Tx2DList = Transaction2DList(txPtr2DList=stage2TxPtr2DList)
