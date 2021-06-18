@@ -11,6 +11,7 @@ class List{
     public:
         std::vector<T> Vec;  // technically transactions are been append by the order of date-time(FIFO like)
         List(){}
+        ~List(){}  // TODO
         void Append(T newData){
             this->Vec.push_back(newData);
         }
@@ -44,6 +45,8 @@ extern "C"{
             std::string channel;
             std::string behavior;
         public:
+        Transaction(){this->amt=0;}
+        Transaction(float amt){this->amt=amt;}
             Transaction(unsigned long long dateTime, float amt, std::string channel, std::string behavior){
                 this->dateTime = dateTime;
                 this->amt = amt;
@@ -51,16 +54,21 @@ extern "C"{
                 this->behavior = behavior;
             }
             ~Transaction(){}
+            Transaction operator+(const Transaction&);
             unsigned long long GetDateTime(){return this->dateTime;}
             float GetAmount(){return this->amt;}
             std::string GetChannel(){return this->channel;}
             std::string GetBehavior(){return this->behavior;}
     };
+    Transaction Transaction::operator+(const Transaction &that){
+        return Transaction(this->amt+that.amt);
+    }
     Transaction *NewTransaction(unsigned long long dateTime, float amt, char * const channelPtr, char * const behaviorPtr){return new Transaction(dateTime, amt, channelPtr, behaviorPtr);}
     unsigned long long TxGetDateTime(Transaction* txPtr){return (txPtr->GetDateTime());}
     float TxGetAmount(Transaction* txPtr){return (txPtr->GetAmount());}
     const char *TxGetChannel(Transaction* txPtr){return (txPtr->GetChannel()).c_str();}
     const char *TxGetBehavior(Transaction* txPtr){return (txPtr->GetBehavior()).c_str();}
+
 
     /*************** transaction list ***************/
     void *NewTransactionList(){return (void *)(new List<Transaction *>());}
@@ -83,6 +91,16 @@ extern "C"{
     void TxListAddCapacity(void *list, int num){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         txList->AppCapacity(num);
+    }
+    Transaction *TxListSum(void *list){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        Transaction txTemp, *txSum = new Transaction();
+        std::vector<Transaction*>::iterator txPtr;
+        for(txPtr=(txList->Vec).begin(); txPtr!=(txList->Vec).end(); txPtr++){
+            txTemp = *txSum + (*(*txPtr));
+            txSum = std::addressof(txTemp);
+        }
+        return txSum;
     }
 
     /*************** transaction 2D-list ***************/
@@ -283,14 +301,22 @@ int main(){
     // tx
     Transaction *tx1 = new Transaction(dateTime, 10, channel, behavior);
     Transaction *tx2 = new Transaction(dateTime, 20, channel, behavior);
-    std::cout << "amount:"  << tx1->GetAmount()
+    Transaction tx3_ = *tx1 + *tx2;
+    Transaction *tx3 = std::addressof(tx3_);
+    std::cout << "tx1:: amount:"  << tx1->GetAmount()
               << ", date time:" << std::to_string(tx1->GetDateTime())
               << ", channel:" << tx1->GetChannel()
               << ", behavior:" << tx1->GetBehavior() << std::endl;
-//    TransactionList *txList = NewTransactionList();
+    std::cout << "tx2:: amount:"  << tx2->GetAmount()
+              << ", date time:" << std::to_string(tx2->GetDateTime())
+              << ", channel:" << tx2->GetChannel()
+              << ", behavior:" << tx2->GetBehavior() << std::endl;
+    std::cout << "tx1+tx2:: amount:" << tx3->GetAmount() << std::endl;
+
     List<Transaction *> *txList = static_cast<List<Transaction *> *>(NewTransactionList());
     txList->Append(tx1);
     txList->Append(tx2);
     RunRule(rule, (void *)txList, dateTime);
+    std::cout << "Sum of txList:" << TxListSum(txList)->GetAmount() << std::endl;
     return 0;
 }

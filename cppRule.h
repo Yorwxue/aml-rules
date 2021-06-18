@@ -13,6 +13,7 @@ extern "C" Transaction *TxListGetDataByIndex(void *txList, int idx);
 extern "C" int GetTxListSize(void *list);
 extern "C" int GetTxListCapacity(void *list);
 extern "C" void TxListAddCapacity(void *list, int num);
+extern "C" Transaction *TxListSum(void *list);
 // Transaction2DList
 extern "C" void *Tx2DListGetDataByIndex(void *list, int idx);
 extern "C" int GetTx2DListSize(void *list);
