@@ -116,6 +116,14 @@ extern "C"{
         delete txPtr;
         txList->Drop(idx);
     }
+    void TxListDrops(void *list, int startIdx, int endIdx){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        if(endIdx>txList->GetSize()){endIdx=txList->GetSize();}
+        for(std::vector<Transaction *>::iterator txPtr=txList->Vec.begin()+startIdx; txPtr!=txList->Vec.begin()+endIdx; txPtr++){
+            delete *txPtr;
+        }
+        txList->Drops(startIdx, endIdx);
+    }
 
     /*************** transaction 2D-list ***************/
     void *Tx2DListGetDataByIndex(void *list, int idx){
@@ -348,7 +356,8 @@ int main(){
 
     // test drop
     std::cout << "List all after drop element in index:0" << std::endl;
-    TxListDrop(txList, 0);
+//    TxListDrop(txList, 0);
+    TxListDrops(txList, 0, 1);
     i = 1;
     for(std::vector<Transaction*>::iterator txPtr=(txList->Vec).begin(); txPtr!=(txList->Vec).end(); txPtr++){
         std::cout << "tx"<< i++ <<":: amount:"  << (*txPtr)->GetAmount()
