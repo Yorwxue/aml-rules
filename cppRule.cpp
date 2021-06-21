@@ -11,7 +11,7 @@ class List{
     public:
         std::vector<T> Vec;  // technically transactions are been append by the order of date-time(FIFO like)
         List(){}
-        ~List(){}  // TODO
+        ~List(){}
         void Append(T newData){
             this->Vec.push_back(newData);
         }
@@ -31,6 +31,14 @@ class List{
         }
         void AppCapacity(int num){
             this->Vec.reserve(num+GetCapacity());
+        }
+        void PopBack(){this->vec.pop_back();}
+        void PopFront(){this->vec.pop_front();}
+        void Drop(int idx){
+            this->Vec.erase(this->Vec.begin()+idx);
+        }
+        void Drops(int startIdx, int endIdx){
+            this->Vec.erase(this->Vec.begin()+startIdx, this->Vec.begin()+endIdx);
         }
 };
 
@@ -75,7 +83,7 @@ extern "C"{
     void TxListAppend(void *list, Transaction *newData){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         txList->Append(newData);
-    };
+    }
     Transaction *TxListGetDataByIndex(void *list, int idx){
         List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
         return txList->GetDataByIndex(idx);
@@ -101,6 +109,12 @@ extern "C"{
             txSum = std::addressof(txTemp);
         }
         return txSum;
+    }
+    void TxListDrop(void *list, int idx){
+        List<Transaction *> *txList = static_cast<List<Transaction *> *>(list);
+        Transaction *txPtr = txList->GetDataByIndex(idx);
+        delete txPtr;
+        txList->Drop(idx);
     }
 
     /*************** transaction 2D-list ***************/
@@ -312,11 +326,36 @@ int main(){
               << ", channel:" << tx2->GetChannel()
               << ", behavior:" << tx2->GetBehavior() << std::endl;
     std::cout << "tx1+tx2:: amount:" << tx3->GetAmount() << std::endl;
+    std::cout << "===================================" << std::endl;
 
+    // create list
     List<Transaction *> *txList = static_cast<List<Transaction *> *>(NewTransactionList());
     txList->Append(tx1);
     txList->Append(tx2);
+
+    // print all list
+    std::cout << "List all" << std::endl;
+    int i = 1;
+    for(std::vector<Transaction*>::iterator txPtr=(txList->Vec).begin(); txPtr!=(txList->Vec).end(); txPtr++){
+        std::cout << "tx"<< i++ <<":: amount:"  << (*txPtr)->GetAmount()
+                  << ", date time:" << std::to_string((*txPtr)->GetDateTime())
+                  << ", channel:" << (*txPtr)->GetChannel()
+                  << ", behavior:" << (*txPtr)->GetBehavior() << std::endl;
+    }
+
     RunRule(rule, (void *)txList, dateTime);
     std::cout << "Sum of txList:" << TxListSum(txList)->GetAmount() << std::endl;
+
+    // test drop
+    std::cout << "List all after drop element in index:0" << std::endl;
+    TxListDrop(txList, 0);
+    i = 1;
+    for(std::vector<Transaction*>::iterator txPtr=(txList->Vec).begin(); txPtr!=(txList->Vec).end(); txPtr++){
+        std::cout << "tx"<< i++ <<":: amount:"  << (*txPtr)->GetAmount()
+                  << ", date time:" << std::to_string((*txPtr)->GetDateTime())
+                  << ", channel:" << (*txPtr)->GetChannel()
+                  << ", behavior:" << (*txPtr)->GetBehavior() << std::endl;
+    }
+
     return 0;
 }
